@@ -8,23 +8,34 @@ import os
 #https://stackoverflow.com/questions/45706127/how-to-open-a-cr2-file-in-python-opencv
 #https://www.tutorialkart.com/opencv/python/opencv-python-resize-image/
 
-with rawpy.imread("IMG_8700.CR2") as raw:
-    rgb = raw.postprocess()  # a numpy RGB array
-    image = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)  # the OpenCV image
+def sampleload():
+    with rawpy.imread("IMG_8700.CR2") as raw:
+        rgb = raw.postprocess()  # a numpy RGB array
+        image = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)  # the OpenCV image
 
-scale_percent = 15  # percent of original size
-width = int(image.shape[1] * scale_percent / 100)
-height = int(image.shape[0] * scale_percent / 100)
-dim = (width, height)
+    scale_percent = 15  # percent of original size
+    width = int(image.shape[1] * scale_percent / 100)
+    height = int(image.shape[0] * scale_percent / 100)
+    dim = (width, height)
 
-# resize image
-resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+    # resize image
+    resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
-cv2.imshow('image',resized)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    cv2.imshow('image',resized)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 ####GPT-3 generated code - untested.
+def read_raw_images(start_num, end_num):
+    img_list = []
+    for i in range(start_num, end_num+1):
+        filename = 'IMG_{}.CR2'.format(i)
+        if os.path.exists(filename):
+            with rawpy.imread(filename) as raw:
+                img = raw.raw_image_visible.astype(np.float32)
+                img_list.append(img)
+    return img_list
+
 def generate_gaussian_pyramid(image, levels):
     pyramid = [image]
     for i in range(levels):
@@ -36,7 +47,13 @@ def generate_laplacian_pyramid(image, levels):
     gaussian_pyramid = generate_gaussian_pyramid(image, levels)
     pyramid = []
     for i in range(levels, 0, -1):
-        gaussian_extended = cv2.pyrUp(gaussian_pyramid[i])
+        size = (gaussian_pyramid[i - 1].shape[1], gaussian_pyramid[i - 1].shape[0])
+#        print(i)
+#        gaussian_extended = cv2.copyMakeBorder(cv2.pyrUp(gaussian_pyramid[i]), 0, 1, 0, 1, cv2.BORDER_DEFAULT)
+#        print(gaussian_extended.shape)
+#        print(gaussian_pyramid[i-1].shape)
+        
+        gaussian_extended = cv2.pyrUp(gaussian_pyramid[i],dstsize=size)
         laplacian = cv2.subtract(gaussian_pyramid[i-1], gaussian_extended)
         pyramid.append(laplacian)
     pyramid.append(gaussian_pyramid[0])
@@ -69,15 +86,3 @@ def display():
     cv2.imshow('Fused Image', fused_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-
-
-def read_raw_images(start_num, end_num):
-    img_list = []
-    for i in range(start_num, end_num+1):
-        filename = 'IMG_{}.CR2'.format(i)
-        if os.path.exists(filename):
-            with rawpy.imread(filename) as raw:
-                img = raw.raw_image_visible.astype(np.float32)
-                img_list.append(img)
-    return img_list
